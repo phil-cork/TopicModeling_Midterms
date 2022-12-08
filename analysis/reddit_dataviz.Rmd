@@ -1,0 +1,59 @@
+---
+title: "reddit_dataviz"
+author: "Phil Cork"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# import packages
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(scales)
+
+# import pre-formatted reddit data
+reddit <- read.csv("../data/reddit_output.csv")
+# store as Date
+reddit$date <- as.Date(reddit$date)
+
+# separate subreddits
+con <- reddit %>%
+  filter(subreddit=='conservative')
+
+dem <- reddit %>%
+  filter(subreddit=='democrats')
+```
+
+
+```{r, echo=FALSE}
+
+# plot the ratio of upvotes over time
+ggplot(reddit, aes(x=date, y=upvote_ratio, color=subreddit)) +
+  geom_jitter() + 
+  scale_color_manual(values=c('#D65361', '#317AAE'), name="") + 
+  labs(x="", y="Upvote Ratio", title="Upvote Ratio Remains Steady Leading Up to Midterms",
+       subtitle="Reddit Submissions, Oct, 2021") + 
+  theme_minimal()
+  
+```
+
+```{r}
+
+# create new dataframe based on which domain name and subreddit are included, then aggregate by new pairing
+domains <- reddit %>%
+  group_by(domain, subreddit) %>%
+  summarize(links=n(), avg.upvotes = mean(ups), avg.upratio = mean(upvote_ratio), avg.comments=mean(num_comments)) %>%
+  filter(links>=10) %>%
+  filter(!domain %in% c("redd", "imgur"))
+```
+
+```{r}
+# plot bar plot of domains and the number of times they are linked, color by subreddit
+ggplot(domains, aes(y=reorder(domain, links), x=links, fill=subreddit)) + 
+  geom_bar(stat='identity', position='dodge') + 
+    scale_fill_manual(values=c('#D65361', '#317AAE'), name="") + 
+  labs(x="Number of Links", y="", title="News Sources Do Not Overlap for Partisan Subreddits", subtitle="Reddit Submissions, Oct, 2021") + 
+  theme_minimal() + 
+  theme(panel.grid.major.y = element_blank())
+```
+
